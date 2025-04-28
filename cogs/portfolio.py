@@ -1,30 +1,28 @@
 import discord
 from discord.ext import commands
-from utils.database import add_to_portfolio, remove_from_portfolio, view_portfolio
+from discord import app_commands
+from utils.database import load_portfolio, save_portfolio
 
 class PortfolioCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="addstock")
-    async def addstock(self, ctx, stock_id: str, cost: float):
-        add_to_portfolio(ctx.author.id, stock_id, cost)
-        await ctx.send(f"已新增到自選股清單：{stock_id}，成本價：{cost}元。")
+    @app_commands.command(name="addstock", description="新增自選股到清單")
+    async def addstock(self, interaction: discord.Interaction, stock_id: str, shares: int):
+        await interaction.response.defer(ephemeral=True)
+        save_portfolio(interaction.user.id, stock_id, shares)
+        await interaction.followup.send(f"✅ 已將 {shares} 股 {stock_id} 加入你的自選股清單。")
 
-    @commands.command(name="removestock")
-    async def removestock(self, ctx, stock_id: str):
-        remove_from_portfolio(ctx.author.id, stock_id)
-        await ctx.send(f"已從自選股清單移除：{stock_id}。")
-
-    @commands.command(name="mystocks")
-    async def mystocks(self, ctx):
-        portfolio = view_portfolio(ctx.author.id)
+    @app_commands.command(name="mystocks", description="查看我的自選股清單")
+    async def mystocks(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        portfolio = load_portfolio(interaction.user.id)
         if not portfolio:
-            await ctx.send("你的自選股清單是空的。")
+            await interaction.followup.send("📋 你的自選股清單是空的。")
             return
 
-        text = "\n".join([f"{p['stock_id']} 成本價：{p['cost']}" for p in portfolio])
-        await ctx.send(f"你的自選股清單：\n{text}")
+        stocks_text = "\n".join([f"📈 {s['stock_id']} - {s['shares']} 股" for s in portfolio])
+        await interaction.followup.send(f"你的自選股列表：\n{stocks_text}")
 
 async def setup(bot):
-    bot.add_cog(PortfolioCog(bot))
+    await bot.add_cog(PortfolioCog(bot))
