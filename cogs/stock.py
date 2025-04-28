@@ -12,6 +12,11 @@ class StockCog(commands.Cog):
 
     @app_commands.command(name="stock", description="查詢台股即時資料")
     async def stock(self, interaction: discord.Interaction, stock_id: str):
+        # 如果是在私人訊息 (DM) 中使用，提醒使用者
+        if interaction.guild is None:
+            await interaction.response.send_message("⚠️ 請到伺服器頻道中使用此指令喔！", ephemeral=True)
+            return
+
         # 取得即時資料
         realtime = get_realtime_data(stock_id)
         if not realtime:
