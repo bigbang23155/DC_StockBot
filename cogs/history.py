@@ -19,5 +19,5 @@ class HistoryCog(commands.Cog):
             history_text = "\n".join([f"{h['date']} - {h['price']}元" for h in history[-10:]])
             await interaction.response.send_message(f"最近10次查詢紀錄：\n{history_text}", ephemeral=True)
 
-def setup(bot):
-    bot.add_cog(HistoryCog(bot))
+async def setup(bot):
+    await bot.add_cog(HistoryCog(bot))
