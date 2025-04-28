@@ -93,3 +93,11 @@ def view_portfolio(user_id):
         return portfolio.get(str(user_id), [])
     except (FileNotFoundError, json.JSONDecodeError):
         return []
+def load_alerts():
+    path = os.path.join(DATA_FOLDER, "alerts.json")
+    if not os.path.exists(path):
+        return {}
+
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
