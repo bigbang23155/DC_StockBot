@@ -2,3 +2,5 @@ discord.py>=2.0.0
 twstock
 beautifulsoup4
 requests
+apscheduler
+lxml
