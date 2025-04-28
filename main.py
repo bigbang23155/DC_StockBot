@@ -20,13 +20,9 @@ async def setup_hook():
     for ext in extensions:
         await bot.load_extension(ext)
     
-    # 強制重新同步指令樹
-    try:
-        guild = discord.Object(id=你的伺服器ID)  # <<< 這邊要放你的伺服器ID
-        await bot.tree.sync(guild=guild)
-        print(f"✅ Slash commands synced to guild {guild.id}")
-    except Exception as e:
-        print(f"❌ Sync failed: {e}")
+    # 強制全域同步（不要只同步特定伺服器）
+    await bot.tree.sync()
+    print("✅ Slash commands globally synced!")
 
 @bot.event
 async def on_ready():
