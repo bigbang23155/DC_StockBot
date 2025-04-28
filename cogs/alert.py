@@ -29,5 +29,5 @@ class AlertModal(discord.ui.Modal):
         save_alert(interaction.user.id, self.stock_id, float(target_price))
         await interaction.response.send_message(f"已設定提醒：{self.stock_id} 達到 {target_price} 元！", ephemeral=True)
 
-def setup(bot):
-    bot.add_cog(AlertCog(bot))
+async def setup(bot):
+    await bot.add_cog(AlertCog(bot))
