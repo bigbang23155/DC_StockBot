@@ -7,13 +7,21 @@ intents.message_content = True  # 讓Bot能讀取訊息內容
 
 bot = commands.Bot(command_prefix="/", intents=intents)
 
-# 載入功能模組
 extensions = ['cogs.stock', 'cogs.news', 'cogs.alert', 'cogs.history', 'cogs.portfolio']
-for ext in extensions:
-    bot.load_extension(ext)
 
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user}!')
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print('------')
+
+@bot.event
+async def setup_hook():
+    # 載入所有功能模組
+    for ext in extensions:
+        await bot.load_extension(ext)
+
+    # 同步 Slash Commands
+    synced = await bot.tree.sync()
+    print(f'Successfully synced {len(synced)} slash commands.')
 
 bot.run(os.getenv('DISCORD_TOKEN'))
