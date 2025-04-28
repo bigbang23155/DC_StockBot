@@ -13,6 +13,7 @@ extensions = [
     'cogs.alert',
     'cogs.history',
     'cogs.portfolio'
+    'cogs.admin'
 ]
 
 @bot.event
