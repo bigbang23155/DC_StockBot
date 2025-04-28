@@ -12,17 +12,13 @@ class StockCog(commands.Cog):
 
     @app_commands.command(name="stock", description="查詢台股即時資料")
     async def stock(self, interaction: discord.Interaction, stock_id: str):
-        # 如果是在私人訊息 (DM) 中使用，提醒使用者
-        if interaction.guild is None:
-            await interaction.response.send_message("⚠️ 請到伺服器頻道中使用此指令喔！", ephemeral=True)
-            return
-
-        await interaction.response.defer(ephemeral=False)  # ⚡ 新增 defer，先告訴Discord「我在處理中！」
+        # 先延遲，防止超時
+        await interaction.response.defer(ephemeral=True)
 
         # 取得即時資料
         realtime = get_realtime_data(stock_id)
         if not realtime:
-            await interaction.followup.send("查詢失敗，請確認股票代碼。", ephemeral=True)
+            await interaction.followup.send("查詢失敗，請確認股票代碼。")
             return
         
         # 均線分析 + 巴菲特邏輯建議
@@ -47,7 +43,7 @@ class StockCog(commands.Cog):
         view.add_item(discord.ui.Button(label="設定提醒", style=discord.ButtonStyle.success, custom_id=f"alert_{stock_id}"))
         view.add_item(discord.ui.Button(label="查詢紀錄", style=discord.ButtonStyle.secondary, custom_id=f"history_{stock_id}"))
 
-        await interaction.followup.send(embed=embed, view=view)  # ⚡ 用 followup 來回應查詢結果！
+        await interaction.followup.send(embed=embed, view=view)
 
 async def setup(bot):
     await bot.add_cog(StockCog(bot))
