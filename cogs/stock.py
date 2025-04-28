@@ -1,9 +1,22 @@
+import discord
+from discord.ext import commands
+from discord import app_commands
+from utils.fetcher import get_realtime_data, get_kline_data
+from utils.analysis import analyze_stock
+from utils.kline_analysis import kline_pattern
+from utils.database import save_history
+
+class StockCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
     @app_commands.command(name="stock", description="查詢台股即時資料")
     async def stock(self, interaction: discord.Interaction, stock_id: str):
-        # 【超重要】一收到就 defer！（不要拖）
+        # 【超重要】一收到就 defer！（防止超時）
         await interaction.response.defer(thinking=True, ephemeral=False)
-        
+
         try:
+            # 取得即時資料
             realtime = get_realtime_data(stock_id)
             if not realtime:
                 await interaction.followup.send("查詢失敗，請確認股票代碼。")
@@ -25,13 +38,17 @@
             embed.add_field(name="操作建議", value=buffett_suggestion, inline=False)
             embed.add_field(name="K線型態", value=f"{kline_type}\n{meaning}", inline=False)
 
+            # 加按鈕互動
             view = discord.ui.View()
             view.add_item(discord.ui.Button(label="查看新聞", style=discord.ButtonStyle.primary, custom_id=f"news_{stock_id}"))
             view.add_item(discord.ui.Button(label="設定提醒", style=discord.ButtonStyle.success, custom_id=f"alert_{stock_id}"))
             view.add_item(discord.ui.Button(label="查詢紀錄", style=discord.ButtonStyle.secondary, custom_id=f"history_{stock_id}"))
 
             await interaction.followup.send(embed=embed, view=view)
-        
+
         except Exception as e:
             print(f"❌ stock command error: {e}")
             await interaction.followup.send("處理過程中發生錯誤，請稍後再試～")
+
+async def setup(bot):
+    await bot.add_cog(StockCog(bot))
