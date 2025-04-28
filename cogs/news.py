@@ -18,5 +18,5 @@ class NewsCog(commands.Cog):
             news_text = "\n\n".join([f"📌 {n['title']}\n{n['link']}" for n in news_list])
             await interaction.response.send_message(news_text, ephemeral=True)
 
-def setup(bot):
-    bot.add_cog(NewsCog(bot))
+async def setup(bot):
+    await bot.add_cog(NewsCog(bot))
