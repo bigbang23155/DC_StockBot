@@ -12,7 +12,7 @@ extensions = [
     'cogs.news',
     'cogs.alert',
     'cogs.history',
-    'cogs.portfolio'
+    'cogs.portfolio',  # ✅ 改正
     'cogs.admin'
 ]
 
