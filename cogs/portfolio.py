@@ -26,5 +26,5 @@ class PortfolioCog(commands.Cog):
         text = "\n".join([f"{p['stock_id']} 成本價：{p['cost']}" for p in portfolio])
         await ctx.send(f"你的自選股清單：\n{text}")
 
-def setup(bot):
+async def setup(bot):
     bot.add_cog(PortfolioCog(bot))
