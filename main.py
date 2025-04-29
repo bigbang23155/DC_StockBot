@@ -30,7 +30,9 @@ extensions = [
     'cogs.alert',
     'cogs.history',
     'cogs.portfolio',  # ✅ Correct
-    'cogs.admin'
+    'cogs.admin',
+    'cogs.alert_scheduler',
+    'cogs.simulate',
 ]
 
 @bot.event
