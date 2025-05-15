@@ -35,6 +35,24 @@ class PortfolioCog(commands.Cog):
         except Exception as e:
             print(f"❌ mystocks error: {e}")
             await interaction.followup.send("查詢自選股失敗，請稍後再試～")
+    @app_commands.command(name="myetfs", description="查看我的 ETF 自選清單")
+    async def myetfs(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True, ephemeral=True)
+        
+        try:
+            portfolio = view_portfolio(interaction.user.id)
+            etfs = [s for s in portfolio if s["stock_id"].startswith("0")]
+
+            if not etfs:
+                await interaction.followup.send("📋 你的 ETF 自選清單是空的。")
+                return
+
+            etf_text = "\n".join([f"🧺 {s['stock_id']} - {s['cost']} 股" for s in etfs])
+            await interaction.followup.send(f"你的 ETF 清單：\n{etf_text}")
+        except Exception as e:
+            print(f"❌ myetfs error: {e}")
+            await interaction.followup.send("查詢 ETF 清單失敗，請稍後再試～")
+
 
 async def setup(bot):
     await bot.add_cog(PortfolioCog(bot))
