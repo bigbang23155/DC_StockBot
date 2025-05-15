@@ -62,9 +62,9 @@ class AlertScheduler(commands.Cog):
 
     @commands.command(name="simulatepush")
     async def simulate_push(self, ctx):
-        """手動測試推播 (管理員用)"""
+        """手動測試推播 (admin)。"""
         await self.push_stock_summary()
-        await ctx.send("✅ 推播模擬完成！訊息已送出。")
+        await ctx.send("✅ 推播模擬完成！")
 
 async def setup(bot):
     await bot.add_cog(AlertScheduler(bot))
