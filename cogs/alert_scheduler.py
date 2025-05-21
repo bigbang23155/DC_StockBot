@@ -1,18 +1,17 @@
 import discord
 from discord.ext import commands, tasks
+from datetime import datetime, timedelta
+import asyncio
 import os
 import json
-import asyncio
-from datetime import datetime, timedelta
-import pytz
-
+import yfinance as yf
+import ta
 from utils.database import view_portfolio
-from utils.fetcher import get_realtime_data
 
 class AlertScheduler(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.channel_id = int(os.getenv("PUSH_CHANNEL_ID", 0))  # 推播頻道 ID（環境變數設定）
+        self.channel_id = int(os.getenv("PUSH_CHANNEL_ID", 0))  # 指定推播頻道
         self.daily_push.start()
 
     def cog_unload(self):
@@ -20,64 +19,84 @@ class AlertScheduler(commands.Cog):
 
     @tasks.loop(hours=24)
     async def daily_push(self):
+        today = datetime.now().date()
+        if today.weekday() >= 5:  # 六日不推播
+            return
         await self.push_stock_summary()
 
     @daily_push.before_loop
     async def before_daily_push(self):
-        tz = pytz.timezone("Asia/Taipei")
-        now = datetime.now(tz)
+        await self.bot.wait_until_ready()
+        now = datetime.utcnow() + timedelta(hours=8)  # 台灣時間
         target = now.replace(hour=8, minute=45, second=0, microsecond=0)
-
-        # 若現在已過時間或為週末，找下一個平日
-        if now > target or now.weekday() >= 5:
-            days_to_add = 1
-            while True:
-                next_day = now + timedelta(days=days_to_add)
-                if next_day.weekday() < 5:
-                    target = next_day.replace(hour=8, minute=45, second=0, microsecond=0)
-                    break
-                days_to_add += 1
-
+        if now > target:
+            target += timedelta(days=1)
         wait_seconds = (target - now).total_seconds()
-        print(f"⏳ 等待 {wait_seconds:.2f} 秒（至 {target.strftime('%Y-%m-%d %H:%M:%S')}）後開始每日推播任務...")
+        print(f"⏳ 等待 {int(wait_seconds)} 秒後開始每日推播...")
         await asyncio.sleep(wait_seconds)
 
     async def push_stock_summary(self):
         if not self.channel_id:
-            print("❗ PUSH_CHANNEL_ID 未設定，跳過推播。")
+            print("❗ 未設定推播頻道 ID。")
             return
 
         channel = self.bot.get_channel(self.channel_id)
         if not channel:
-            print("❗ 找不到推播頻道，ID設定錯誤。")
+            print("❗ 找不到推播頻道。")
             return
 
-        message = "**📢 每日自選股提醒！**\n"
+        message = "**📢 每日自選股提醒！ (以昨日收盤分析)**\n"
+
         try:
-            with open('data/portfolio.json', encoding="utf-8") as f:
+            with open("data/portfolio.json", encoding="utf-8") as f:
                 portfolios = json.load(f)
         except (FileNotFoundError, json.JSONDecodeError):
             portfolios = {}
 
-        sent = False
+        symbols = set()
         for user_id, stocks in portfolios.items():
-            for stock in stocks:
-                stock_id = stock["stock_id"]
-                realtime = get_realtime_data(stock_id)
-                if realtime:
-                    message += f"\n📈 `{stock_id}` {realtime['name']} 現價：{realtime['latest_trade_price']} 元"
-                    sent = True
+            for s in stocks:
+                symbols.add(s["stock_id"])
 
-        if sent:
-            await channel.send(message)
-        else:
-            await channel.send("📭 今天沒有任何自選股資料可供推播。")
+        for stock_id in symbols:
+            try:
+                yahoo_symbol = f"{stock_id}.TW"
+                df = yf.download(yahoo_symbol, period="10d", interval="1d", progress=False)
+
+                if df.empty or "Close" not in df:
+                    message += f"\n❌ `{stock_id}` 無法取得資料"
+                    continue
+
+                close_price = df["Close"].iloc[-1]
+                rsi = ta.momentum.RSIIndicator(df["Close"]).rsi().iloc[-1]
+                ma5 = df["Close"].rolling(5).mean().iloc[-1]
+                ma20 = df["Close"].rolling(20).mean().iloc[-1]
+
+                analysis = []
+                if close_price > ma5 > ma20:
+                    analysis.append("🔼 多頭排列")
+                elif close_price < ma5 < ma20:
+                    analysis.append("🔽 空頭排列")
+                else:
+                    analysis.append("➡️ 盤整區間")
+
+                if rsi >= 70:
+                    analysis.append("⚠️ RSI 過熱")
+                elif rsi <= 30:
+                    analysis.append("💡 RSI 超跌")
+
+                message += f"\n📈 `{stock_id}` 昨收：{close_price:.2f} 元 ｜{', '.join(analysis)}"
+
+            except Exception as e:
+                print(f"[ERROR] 分析 {stock_id} 時發生錯誤：{e}")
+                message += f"\n❗ `{stock_id}` 分析失敗"
+
+        await channel.send(message)
 
     @commands.command(name="simulatepush")
     async def simulate_push(self, ctx):
-        """手動測試推播（管理員用）"""
         await self.push_stock_summary()
-        await ctx.send("✅ 推播模擬完成！訊息已送出。")
+        await ctx.send("✅ 推播模擬完成！")
 
 async def setup(bot):
     await bot.add_cog(AlertScheduler(bot))

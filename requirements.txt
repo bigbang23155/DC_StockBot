@@ -6,3 +6,5 @@ apscheduler
 lxml
 apscheduler
 pytz
+yfinance
+pandas
